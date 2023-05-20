@@ -34,7 +34,7 @@ void setup()
 
   delay(100);
 
-  if (MDNS.begin("esp8266"))
+  if (MDNS.begin("alarm"))
   { // Start the mDNS responder for esp8266.local
     Serial.println("mDNS responder started");
   }
