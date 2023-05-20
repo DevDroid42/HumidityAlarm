@@ -99,7 +99,7 @@ void sample_humidity()
 }
 
 // Variable to store the HTTP request
-String header;
+char header[256];
 // Current time
 unsigned long currentTime = millis();
 // Previous time
@@ -109,17 +109,17 @@ const long timeoutTime = 2000;
 
 void generatePage(WiFiClient client)
 {
-  if (header.indexOf("GET /temp") >= 0)
+  if (strstr(header, "GET /temp") != nullptr)
   {
     client.println(temp);
   }
-  else if (header.indexOf("GET /humidity") >= 0)
+  else if (strstr(header, "GET /humidity") != nullptr)
   {
     client.println(humidity);
   }
   else
   {
-    bool autoRefresh = header.indexOf("GET /auto") >= 0;
+    bool autoRefresh = strstr(header, "GET /auto") != nullptr;
     // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
     // and a content-type so the client knows what's coming, then a blank line:
     client.println("HTTP/1.1 200 OK");
@@ -139,7 +139,7 @@ void generatePage(WiFiClient client)
     // Feel free to change the background-color and font-size attributes to fit your preferences
     client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
     client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;</style></head>");
-    if(autoRefresh){
+    if (autoRefresh){
       client.println("<p><a href=\"home\"><button class=\"button\">disable auto refresh</button></a></p>");
     }else{
       client.println("<p><a href=\"auto\"><button class=\"button\">enable auto refresh</button></a></p>");
@@ -166,7 +166,7 @@ void handleNetwork()
   if (client)
   {                                // If a new client connects,
     Serial.println("New Client."); // print a message out in the serial port
-    String currentLine = "";       // make a String to hold incoming data from the client
+    char currentLine[256] = "";    // make a C string to hold incoming data from the client
     currentTime = millis();
     previousTime = currentTime;
     while (client.connected() && currentTime - previousTime <= timeoutTime)
@@ -176,12 +176,12 @@ void handleNetwork()
       {                         // if there's bytes to read from the client,
         char c = client.read(); // read a byte, then
         Serial.write(c);        // print it out the serial monitor
-        header += c;
+        strncat(header, &c, 1);
         if (c == '\n')
         { // if the byte is a newline character
           // if the current line is blank, you got two newline characters in a row.
           // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0)
+          if (strlen(currentLine) == 0)
           {
             generatePage(client);
             // Break out of the while loop
@@ -189,17 +189,17 @@ void handleNetwork()
           }
           else
           { // if you got a newline, then clear currentLine
-            currentLine = "";
+            currentLine[0] = '\0';
           }
         }
         else if (c != '\r')
         {                   // if you got anything else but a carriage return character,
-          currentLine += c; // add it to the end of the currentLine
+          strncat(currentLine, &c, 1); // add it to the end of the currentLine
         }
       }
     }
     // Clear the header variable
-    header = "";
+    header[0] = '\0';
     // Close the connection
     client.stop();
     Serial.println("Client disconnected.");
