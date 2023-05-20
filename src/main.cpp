@@ -6,6 +6,7 @@
 #include <ESP8266mDNS.h>
 #include <WiFiManager.h>
 
+bool alarmArmed = true;
 bool alarmActivated = false;
 const int soundPin = 4;
 const int ledPin = 2;
@@ -34,7 +35,7 @@ void setup()
 
   delay(100);
 
-  if (MDNS.begin("alarm"))
+  if (MDNS.begin("halarm"))
   { // Start the mDNS responder for esp8266.local
     Serial.println("mDNS responder started");
   }
@@ -56,10 +57,12 @@ void alarm()
     // toggle alarm on and off
     if (millis() / 1000 % 2 == 0)
     {
-      digitalWrite(4, HIGH);
-      delay(3);
-      digitalWrite(soundPin, LOW);
-      delay(3);
+      if(alarmArmed){
+        digitalWrite(4, HIGH);
+        delay(3);
+        digitalWrite(soundPin, LOW);
+        delay(3);
+      }
     }
     else
     {
@@ -119,6 +122,10 @@ void generatePage(WiFiClient client)
   }
   else
   {
+    if (strstr(header, "GET /toggle") != nullptr)
+    {
+      alarmArmed = !alarmArmed;
+    }
     bool autoRefresh = strstr(header, "GET /auto") != nullptr;
     // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
     // and a content-type so the client knows what's coming, then a blank line:
@@ -139,12 +146,19 @@ void generatePage(WiFiClient client)
     // Feel free to change the background-color and font-size attributes to fit your preferences
     client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
     client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;</style></head>");
-    if (autoRefresh){
+    if (autoRefresh)
+    {
       client.println("<p><a href=\"home\"><button class=\"button\">disable auto refresh</button></a></p>");
-    }else{
+    }
+    else
+    {
       client.println("<p><a href=\"auto\"><button class=\"button\">enable auto refresh</button></a></p>");
     }
-
+    if(alarmArmed){
+      client.println("<p><a href=\"toggle\"><button class=\"button\">disarm alarm</button></a></p>");
+    }else{
+      client.println("<p><a href=\"toggle\"><button class=\"button\">arm alarm</button></a></p>");
+    }
     // Display current state, and ON/OFF buttons for GPIO 5
     client.print("<h1>humidity: ");
     client.print(humidity);
@@ -152,6 +166,7 @@ void generatePage(WiFiClient client)
     client.print("<h1>temp: ");
     client.print(temp);
     client.println(" degrees C</h1>");
+    
 
     client.println("</body></html>");
   }
@@ -166,7 +181,7 @@ void handleNetwork()
   if (client)
   {                                // If a new client connects,
     Serial.println("New Client."); // print a message out in the serial port
-    char currentLine[1024] = "";    // make a C string to hold incoming data from the client
+    char currentLine[1024] = "";   // make a C string to hold incoming data from the client
     currentTime = millis();
     previousTime = currentTime;
     size_t headerLen = 0;
@@ -183,7 +198,9 @@ void handleNetwork()
         {
           header[headerLen++] = c;
           header[headerLen] = '\0';
-        }else{
+        }
+        else
+        {
           Serial.println("header buffer exceeded");
           client.write("header buffer limit exceeded");
           break;
@@ -205,7 +222,7 @@ void handleNetwork()
           }
         }
         else if (c != '\r')
-        {                   // if you got anything else but a carriage return character,
+        { // if you got anything else but a carriage return character,
           if (strlen(currentLine) < sizeof(currentLine) - 2)
           {
             strncat(currentLine, &c, 1); // add it to the end of the currentLine
