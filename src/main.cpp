@@ -119,6 +119,7 @@ void generatePage(WiFiClient client)
   }
   else
   {
+    bool autoRefresh = header.indexOf("GET /auto") >= 0;
     // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
     // and a content-type so the client knows what's coming, then a blank line:
     client.println("HTTP/1.1 200 OK");
@@ -129,7 +130,7 @@ void generatePage(WiFiClient client)
     // Display the HTML web page
     client.println("<!DOCTYPE html><html>");
     client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-    if (header.indexOf("GET /auto") >= 0)
+    if (autoRefresh)
     {
       client.println("<meta http-equiv=\"refresh\" content=\"2\">");
     }
@@ -138,6 +139,11 @@ void generatePage(WiFiClient client)
     // Feel free to change the background-color and font-size attributes to fit your preferences
     client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
     client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;</style></head>");
+    if(autoRefresh){
+      client.println("<p><a href=\"home\"><button class=\"button\">disable auto refresh</button></a></p>");
+    }else{
+      client.println("<p><a href=\"auto\"><button class=\"button\">enable auto refresh</button></a></p>");
+    }
 
     // Display current state, and ON/OFF buttons for GPIO 5
     client.print("<h1>humidity: ");
